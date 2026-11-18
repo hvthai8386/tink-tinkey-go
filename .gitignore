@@ -1,0 +1,20 @@
+# Built by `make build`
+bin/
+
+# Test binary, built with `go test -c`
+*.test
+
+# Code coverage profiles
+*.out
+coverage.*
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Editor/IDE
+.idea/
+.vscode/
+
+# Built by `go build ./cmd/tinkey`
+/tinkey
