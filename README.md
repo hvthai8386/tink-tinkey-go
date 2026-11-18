@@ -136,6 +136,19 @@ Without `--credential`, the default credentials chain of the AWS SDK is used (en
 the role of the instance or pod). `--credential` takes a credentials file in the CSV format of the IAM console or in
 the INI format of `~/.aws/credentials` (profile `default`). `--token` does not apply to AWS KMS.
 
+## Using it from another Go program
+
+Package `tinkey` exposes the command itself, for a program that wants the same commands with some flags fixed, such
+as its own master key and associated data:
+
+```go
+cmd := tinkey.NewRootCommand()
+cmd.SetArgs([]string{"list-keyset", "--in-format", "binary", "--master-key-uri", keyURI, "--associated-data", label})
+cmd.SetIn(wrappedKeyset)
+cmd.SetOut(os.Stdout)
+err := cmd.ExecuteContext(ctx)
+```
+
 ## Differences from Java Tinkey
 
 - `--token` and `--new-token` exist only here.
@@ -174,7 +187,7 @@ make lint    # golangci-lint run ./...
 CI also runs `go run golang.org/x/vuln/cmd/govulncheck@latest ./...` and fails on a known vulnerability the code can
 reach.
 
-`cmd/tinkey/java_key_templates.txt` is generated from a Java Tinkey release and must not be edited by hand. To move
+`tinkey/java_key_templates.txt` is generated from a Java Tinkey release and must not be edited by hand. To move
 to another release (needs a JDK):
 
 ```sh

@@ -1,4 +1,4 @@
-package main
+package tinkey
 
 import (
 	"github.com/spf13/cobra"

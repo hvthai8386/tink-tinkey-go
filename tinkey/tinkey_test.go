@@ -1,4 +1,4 @@
-package main
+package tinkey
 
 import (
 	"bytes"
@@ -26,7 +26,7 @@ import (
 func runTinkey(t *testing.T, stdin string, args ...string) (string, error) {
 	t.Helper()
 	var stdout bytes.Buffer
-	root := newRootCommand()
+	root := NewRootCommand()
 	root.SetArgs(args)
 	root.SetIn(strings.NewReader(stdin))
 	root.SetOut(&stdout)

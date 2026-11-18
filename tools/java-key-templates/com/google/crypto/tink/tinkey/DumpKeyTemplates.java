@@ -44,7 +44,7 @@ import org.conscrypt.Conscrypt;
  *
  * <p>It lives in Tinkey's package to reach the package-private TinkeyKeyTemplates, and registers
  * the same key types, in the same order, as Tinkey.main. Its output is
- * cmd/tinkey/java_key_templates.txt; see the Makefile target java-key-templates.
+ * tinkey/java_key_templates.txt; see the Makefile target java-key-templates.
  */
 public final class DumpKeyTemplates {
   public static void main(String[] args) throws Exception {

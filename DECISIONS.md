@@ -26,3 +26,9 @@ Append-only. Newest entry at the bottom.
 **Source:** Thai Huynh, 2026-11-18
 **Supersedes:** Point (1) of "Keysets and command line stay interchangeable with Java Tinkey" (2026-11-18), which forbade the `WithAssociatedData` variants. Its requirement stands for the default: without the flag, keysets are encrypted with empty associated data.
 
+## 2026-11-18 — Package tinkey is importable; its only API is NewRootCommand
+**Context:** A service wanted its own small tool to run the tinkey commands with its master key and associated data fixed, without installing a second binary in its image. The commands lived in `package main` under `cmd/tinkey`, which cannot be imported.
+**Decision:** The implementation moved to package `tinkey` (directory `tinkey/`); `cmd/tinkey/main.go` only runs it. Earlier entries name files under `cmd/tinkey/`: the same files are now under `tinkey/`. The one exported identifier is `NewRootCommand`; importers drive it through arguments, so command names, flag names and the bytes written to standard output are the API, and nothing else is exported to keep it that small. Because the module is now a dependency of other modules, `go.mod` keeps the lowest `go` version the code needs (`go 1.26.3`) and names the patched release in the `toolchain` line (`toolchain go1.26.11`): a higher `go` line would force every importer onto that release, while the `toolchain` line only selects what this repository and its CI build with. Raise the `toolchain` line, not the `go` line, to pick up standard library fixes.
+**Source:** Thai Huynh, 2026-11-18
+**Supersedes:** None
+

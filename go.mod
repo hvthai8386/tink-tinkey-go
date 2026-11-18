@@ -1,6 +1,8 @@
 module github.com/hvthai8386/tink-tinkey-go
 
-go 1.26.11
+go 1.26.3
+
+toolchain go1.26.11
 
 require (
 	github.com/aws/aws-sdk-go-v2/service/kms v1.50.3

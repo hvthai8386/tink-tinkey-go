@@ -8,7 +8,7 @@ It includes material derived from Tinkey 1.14.0
 (https://github.com/tink-crypto/tink-tinkey), Copyright Google LLC, licensed
 under the Apache License, Version 2.0:
 
-- cmd/tinkey/java_key_templates.txt is generated from the key templates of
+- tinkey/java_key_templates.txt is generated from the key templates of
   Tinkey 1.14.0.
 - tools/java-key-templates/com/google/crypto/tink/tinkey/DumpKeyTemplates.java
   adapts the key type registration of Tinkey.java.
