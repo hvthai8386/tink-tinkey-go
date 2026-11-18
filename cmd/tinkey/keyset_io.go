@@ -67,8 +67,9 @@ func (o *outOptions) addFlags(flags *pflag.FlagSet) {
 
 // readKeyset reads a keyset from the --in file, or from stdin without --in.
 // A nil masterKey reads a cleartext keyset; otherwise the keyset must be
-// encrypted with masterKey and empty associated data, as Java Tinkey writes it.
-func readKeyset(stdin io.Reader, in inOptions, masterKey tink.AEAD) (*keyset.Handle, error) {
+// encrypted with masterKey and associatedData. Java Tinkey always encrypts
+// with empty associated data.
+func readKeyset(stdin io.Reader, in inOptions, masterKey tink.AEAD, associatedData []byte) (*keyset.Handle, error) {
 	source := stdin
 	sourceName := "standard input"
 	if in.path != "" {
@@ -92,7 +93,7 @@ func readKeyset(stdin io.Reader, in inOptions, masterKey tink.AEAD) (*keyset.Han
 		}
 		return handle, nil
 	}
-	handle, err := keyset.Read(reader, masterKey)
+	handle, err := keyset.ReadWithAssociatedData(reader, masterKey, associatedData)
 	if err != nil {
 		return nil, fmt.Errorf("read encrypted %s keyset from %s: %w", in.format, sourceName, err)
 	}
@@ -101,8 +102,9 @@ func readKeyset(stdin io.Reader, in inOptions, masterKey tink.AEAD) (*keyset.Han
 
 // writeKeyset writes a keyset to the --out file, or to stdout without --out.
 // A nil masterKey writes the keyset in cleartext; otherwise it is encrypted
-// with masterKey and empty associated data, as Java Tinkey reads it.
-func writeKeyset(stdout io.Writer, out outOptions, handle *keyset.Handle, masterKey tink.AEAD) error {
+// with masterKey and associatedData. Java Tinkey reads only keysets encrypted
+// with empty associated data.
+func writeKeyset(stdout io.Writer, out outOptions, handle *keyset.Handle, masterKey tink.AEAD, associatedData []byte) error {
 	// Serialized in memory first, so that a failed KMS call leaves no empty
 	// or partial output file behind.
 	var serialized bytes.Buffer
@@ -116,7 +118,7 @@ func writeKeyset(stdout io.Writer, out outOptions, handle *keyset.Handle, master
 			return fmt.Errorf("serialize cleartext keyset: %w", err)
 		}
 	} else {
-		if err := handle.Write(writer, masterKey); err != nil {
+		if err := handle.WriteWithAssociatedData(writer, masterKey, associatedData); err != nil {
 			return fmt.Errorf("encrypt keyset with master key: %w", err)
 		}
 	}

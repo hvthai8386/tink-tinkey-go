@@ -52,8 +52,9 @@ type kmsCall struct {
 // server that issues Workload Identity tokens.
 type fakeGoogleCloud struct {
 	url string
-	// gcm encrypts for every fake KMS key; the key name is bound into each
-	// ciphertext, so decrypting with another key fails as in Cloud KMS.
+	// gcm encrypts for every fake KMS key; the key name and the associated
+	// data are bound into each ciphertext, so decrypting with another key or
+	// other associated data fails as in Cloud KMS.
 	gcm cipher.AEAD
 
 	mu       sync.Mutex
@@ -135,7 +136,7 @@ func (c *fakeGoogleCloud) serveKMS(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		ciphertext := c.gcm.Seal(nonce, nonce, plaintext, []byte(keyName))
+		ciphertext := c.gcm.Seal(nonce, nonce, plaintext, []byte(keyName+"\n"+request.AdditionalAuthenticatedData))
 		writeJSON(w, &cloudkms.EncryptResponse{
 			Ciphertext:              base64.StdEncoding.EncodeToString(ciphertext),
 			CiphertextCrc32c:        crc32c(ciphertext),
@@ -154,9 +155,9 @@ func (c *fakeGoogleCloud) serveKMS(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		nonce, sealed := ciphertext[:c.gcm.NonceSize()], ciphertext[c.gcm.NonceSize():]
-		plaintext, err := c.gcm.Open(nil, nonce, sealed, []byte(keyName))
+		plaintext, err := c.gcm.Open(nil, nonce, sealed, []byte(keyName+"\n"+request.AdditionalAuthenticatedData))
 		if err != nil {
-			http.Error(w, "ciphertext was not encrypted with "+keyName, http.StatusBadRequest)
+			http.Error(w, "ciphertext was not encrypted with "+keyName+" and this associated data", http.StatusBadRequest)
 			return
 		}
 		writeJSON(w, &cloudkms.DecryptResponse{
@@ -276,6 +277,61 @@ func TestConvertKeysetMovesKeysetToNewMasterKey(t *testing.T) {
 		"--master-key-uri", newMasterKeyURI, "--token", "new-access-token")
 	if got := primaryKeyID(t, parseCleartextKeyset(t, decryptedJSON)); got != wantKeyID {
 		t.Errorf("primary key id after moving master keys = %d, want %d", got, wantKeyID)
+	}
+}
+
+func TestAssociatedDataIsNeededToReadTheKeysetBack(t *testing.T) {
+	startFakeGoogleCloud(t)
+	masterKeyFlags := []string{"--master-key-uri", masterKeyURI, "--token", "access-token"}
+	withAssociatedData := func(command string, associatedData string) []string {
+		return append([]string{command, "--associated-data", associatedData}, masterKeyFlags...)
+	}
+
+	encryptedJSON := mustRunTinkey(t, "", append(withAssociatedData("create-keyset", "data keyset"), "--key-template", "AES256_GCM")...)
+
+	assertEncryptedKeyset(t, encryptedJSON)
+	rotatedJSON := mustRunTinkey(t, encryptedJSON, append(withAssociatedData("rotate-keyset", "data keyset"), "--key-template", "AES256_GCM")...)
+	listing := mustRunTinkey(t, rotatedJSON, withAssociatedData("list-keyset", "data keyset")...)
+	if got := strings.Count(listing, "key_info {"); got != 2 {
+		t.Errorf("list-keyset with the associated data printed %d keys, want 2:\n%s", got, listing)
+	}
+	if _, err := runTinkey(t, rotatedJSON, withAssociatedData("list-keyset", "digest keyset")...); err == nil {
+		t.Error("list-keyset read the keyset with other associated data, want an error")
+	}
+	if _, err := runTinkey(t, rotatedJSON, append([]string{"list-keyset"}, masterKeyFlags...)...); err == nil {
+		t.Error("list-keyset read the keyset without associated data, want an error")
+	}
+}
+
+func TestConvertKeysetChangesAssociatedData(t *testing.T) {
+	startFakeGoogleCloud(t)
+	masterKeyFlags := []string{"--master-key-uri", masterKeyURI, "--token", "access-token"}
+	// Without --associated-data: the keyset as Java Tinkey writes it.
+	javaStyleJSON := mustRunTinkey(t, "", append([]string{"create-keyset", "--key-template", "AES256_GCM"}, masterKeyFlags...)...)
+	wantKeyID := primaryKeyID(t, parseCleartextKeyset(t,
+		mustRunTinkey(t, javaStyleJSON, append([]string{"convert-keyset"}, masterKeyFlags...)...)))
+
+	boundJSON := mustRunTinkey(t, javaStyleJSON, append([]string{"convert-keyset",
+		"--new-master-key-uri", masterKeyURI, "--new-token", "access-token", "--new-associated-data", "data keyset"}, masterKeyFlags...)...)
+
+	if _, err := runTinkey(t, boundJSON, append([]string{"list-keyset"}, masterKeyFlags...)...); err == nil {
+		t.Error("the converted keyset is still readable without associated data")
+	}
+	decryptedJSON := mustRunTinkey(t, boundJSON, append([]string{"convert-keyset", "--associated-data", "data keyset"}, masterKeyFlags...)...)
+	if got := primaryKeyID(t, parseCleartextKeyset(t, decryptedJSON)); got != wantKeyID {
+		t.Errorf("primary key id after changing the associated data = %d, want %d", got, wantKeyID)
+	}
+}
+
+func TestAssociatedDataRequiresMasterKey(t *testing.T) {
+	stdout, err := runTinkey(t, "", "create-keyset", "--key-template", "AES256_GCM", "--associated-data", "data keyset")
+
+	const wantError = "--associated-data requires --master-key-uri"
+	if err == nil || !strings.Contains(err.Error(), wantError) {
+		t.Errorf("error = %v, want it to contain %q", err, wantError)
+	}
+	if stdout != "" {
+		t.Errorf("wrote %q to stdout, want nothing", stdout)
 	}
 }
 

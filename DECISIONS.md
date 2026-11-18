@@ -19,3 +19,10 @@ Append-only. Newest entry at the bottom.
 **Decision:** `destroyKey` in `cmd/tinkey/key_id_commands.go` edits the keyset proto: status `DESTROYED` and `KeyData` set to an empty message, which serializes to the same bytes as Java Tinkey's output and which tink-go loads. Setting `KeyData` to nil would produce a keyset this CLI can no longer read. `list-keyset` omits the empty `type_url` of such a key, as Java does.
 **Source:** None
 **Supersedes:** None
+
+## 2026-11-18 — Associated data of an encrypted keyset is empty by default and set only by --associated-data
+**Context:** An application that uses these keysets wraps them with `keyset.WriteWithAssociatedData` and a fixed label per keyset, so the KMS refuses to unwrap one keyset as another. Tinkey always uses empty associated data, so it could neither create nor read those keysets.
+**Decision:** `masterKeyOptions.associatedData` (`--associated-data`, `--new-associated-data` in `cmd/tinkey/master_key.go`) is passed to `readKeyset` and `writeKeyset`, which call `keyset.ReadWithAssociatedData` and `Handle.WriteWithAssociatedData`. The default stays empty, which is what Java Tinkey reads and writes: no command may set associated data on its own, and the flag never gets a non-empty default. The value is used as given, byte for byte; trimming or normalizing it would make existing keysets undecryptable.
+**Source:** Thai Huynh, 2026-11-18
+**Supersedes:** Point (1) of "Keysets and command line stay interchangeable with Java Tinkey" (2026-11-18), which forbade the `WithAssociatedData` variants. Its requirement stands for the default: without the flag, keysets are encrypted with empty associated data.
+

@@ -108,6 +108,23 @@ tinkey convert-keyset --in cleartext.json --new-master-key-uri "$KEY" --out encr
 tinkey convert-keyset --in encrypted.json --master-key-uri "$KEY" --new-master-key-uri "$NEW_KEY" --out moved.json
 ```
 
+## Binding a keyset to its use with associated data
+
+`--associated-data` binds a label to the encrypted keyset: the KMS decrypts the keyset only when given the same
+label. An application that stores several keysets under one KMS key can then never load one in place of another.
+
+```sh
+tinkey create-keyset --key-template AES256_GCM --master-key-uri "$KEY" --associated-data "orders data keyset" --out keyset.json
+tinkey list-keyset --in keyset.json --master-key-uri "$KEY" --associated-data "orders data keyset"
+```
+
+Every later command on that keyset needs the same `--associated-data`; without it, or with another value, the KMS
+refuses to decrypt. `convert-keyset` reads with `--associated-data` and writes with `--new-associated-data`, so it can
+add, change or remove the label.
+
+The application must read the keyset the same way, for example with `keyset.ReadWithAssociatedData` in tink-go. Java
+Tinkey has no such option: it reads and writes only keysets without associated data.
+
 ## Encrypting keysets with AWS KMS
 
 ```sh
@@ -122,6 +139,8 @@ the INI format of `~/.aws/credentials` (profile `default`). `--token` does not a
 ## Differences from Java Tinkey
 
 - `--token` and `--new-token` exist only here.
+- `--associated-data` and `--new-associated-data` exist only here. A keyset encrypted with associated data cannot be
+  read by Java Tinkey.
 - `--credential` or `--token` without the matching master key URI is an error; Java Tinkey ignores the credential and
   writes a cleartext keyset.
 - The four AES-EAX key templates (`AES128_EAX`, `AES128_EAX_RAW`, `AES256_EAX`, `AES256_EAX_RAW`) are missing:
@@ -140,6 +159,7 @@ the INI format of `~/.aws/credentials` (profile `default`). `--token` does not a
 | All 143 key templates, JSON and binary keysets, public keysets, `destroy-key` | Java Tinkey 1.14.0, in both directions, on cleartext keysets |
 | Keysets encrypted with Google Cloud KMS | A real Cloud KMS key and Java Tinkey 1.14.0, in both directions (two templates) |
 | `--token` and GKE Workload Identity | A real Cloud KMS key |
+| `--associated-data` | A real Cloud KMS key and an application reading with `keyset.ReadWithAssociatedData`, in both directions |
 | `--credential` for Google Cloud KMS | A fake token endpoint and KMS only |
 | `aws-kms://` master keys | A fake AWS KMS only; never run against AWS or compared with Java Tinkey |
 

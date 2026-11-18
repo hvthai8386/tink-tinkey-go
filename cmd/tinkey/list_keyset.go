@@ -23,7 +23,7 @@ func newListKeysetCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			handle, err := readKeyset(cmd.InOrStdin(), in, masterKeyAEAD)
+			handle, err := readKeyset(cmd.InOrStdin(), in, masterKeyAEAD, []byte(masterKey.associatedData))
 			if err != nil {
 				return err
 			}

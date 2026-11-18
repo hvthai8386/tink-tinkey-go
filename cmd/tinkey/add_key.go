@@ -53,7 +53,7 @@ func newGenerateKeyCommand(use, short, long string, makePrimary bool) *cobra.Com
 			if err != nil {
 				return err
 			}
-			handle, err := readKeyset(cmd.InOrStdin(), in, masterKeyAEAD)
+			handle, err := readKeyset(cmd.InOrStdin(), in, masterKeyAEAD, []byte(masterKey.associatedData))
 			if err != nil {
 				return err
 			}
@@ -72,7 +72,7 @@ func newGenerateKeyCommand(use, short, long string, makePrimary bool) *cobra.Com
 			if err != nil {
 				return err
 			}
-			return writeKeyset(cmd.OutOrStdout(), out, updated, masterKeyAEAD)
+			return writeKeyset(cmd.OutOrStdout(), out, updated, masterKeyAEAD, []byte(masterKey.associatedData))
 		},
 	}
 	addKeyTemplateFlag(cmd, &keyTemplateName)

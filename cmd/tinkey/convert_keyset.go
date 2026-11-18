@@ -29,11 +29,11 @@ func newConvertKeysetCommand() *cobra.Command {
 				return err
 			}
 
-			handle, err := readKeyset(cmd.InOrStdin(), in, masterKeyAEAD)
+			handle, err := readKeyset(cmd.InOrStdin(), in, masterKeyAEAD, []byte(masterKey.associatedData))
 			if err != nil {
 				return err
 			}
-			return writeKeyset(cmd.OutOrStdout(), out, handle, newMasterKeyAEAD)
+			return writeKeyset(cmd.OutOrStdout(), out, handle, newMasterKeyAEAD, []byte(newMasterKey.associatedData))
 		},
 	}
 	in.addFlags(cmd.Flags())

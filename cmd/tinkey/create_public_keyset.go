@@ -24,7 +24,7 @@ func newCreatePublicKeysetCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			handle, err := readKeyset(cmd.InOrStdin(), in, masterKeyAEAD)
+			handle, err := readKeyset(cmd.InOrStdin(), in, masterKeyAEAD, []byte(masterKey.associatedData))
 			if err != nil {
 				return err
 			}
@@ -33,7 +33,7 @@ func newCreatePublicKeysetCommand() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("extract public keys: %w", err)
 			}
-			return writeKeyset(cmd.OutOrStdout(), out, publicHandle, nil)
+			return writeKeyset(cmd.OutOrStdout(), out, publicHandle, nil, nil)
 		},
 	}
 	in.addFlags(cmd.Flags())

@@ -51,7 +51,7 @@ func newKeyIDCommand(use, short string, changeKey func(handle *keyset.Handle, ke
 			if err != nil {
 				return err
 			}
-			handle, err := readKeyset(cmd.InOrStdin(), in, masterKeyAEAD)
+			handle, err := readKeyset(cmd.InOrStdin(), in, masterKeyAEAD, []byte(masterKey.associatedData))
 			if err != nil {
 				return err
 			}
@@ -60,7 +60,7 @@ func newKeyIDCommand(use, short string, changeKey func(handle *keyset.Handle, ke
 			if err != nil {
 				return fmt.Errorf("%s %d: %w", use, keyID, err)
 			}
-			return writeKeyset(cmd.OutOrStdout(), out, updated, masterKeyAEAD)
+			return writeKeyset(cmd.OutOrStdout(), out, updated, masterKeyAEAD, []byte(masterKey.associatedData))
 		},
 	}
 	cmd.Flags().Var(&keyID, "key-id", "The target key id")

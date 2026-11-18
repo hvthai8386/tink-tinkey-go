@@ -33,7 +33,7 @@ func newCreateKeysetCommand() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("generate %s key: %w", keyTemplateName, err)
 			}
-			return writeKeyset(cmd.OutOrStdout(), out, handle, masterKeyAEAD)
+			return writeKeyset(cmd.OutOrStdout(), out, handle, masterKeyAEAD, []byte(masterKey.associatedData))
 		},
 	}
 	addKeyTemplateFlag(cmd, &keyTemplateName)

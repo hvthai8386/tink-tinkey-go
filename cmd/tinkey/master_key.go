@@ -34,10 +34,14 @@ type masterKeyOptions struct {
 	uri            string
 	credentialPath string
 	accessToken    string
+	// associatedData is bound to the encrypted keyset: the KMS decrypts the
+	// keyset only when given the same value. Empty unless --associated-data
+	// is given; Java Tinkey reads and writes only keysets with the empty one.
+	associatedData string
 }
 
-// addFlags defines --master-key-uri, --credential and --token, each with the
-// given prefix. keysetName says in the help text which keyset the key protects.
+// addFlags defines --master-key-uri, --credential, --token and
+// --associated-data, each with the given prefix. keysetName says in the help text which keyset the key protects.
 func (o *masterKeyOptions) addFlags(flags *pflag.FlagSet, prefix, keysetName string) {
 	o.flagPrefix = prefix
 	flags.StringVar(&o.uri, prefix+"master-key-uri", "",
@@ -52,6 +56,10 @@ func (o *masterKeyOptions) addFlags(flags *pflag.FlagSet, prefix, keysetName str
 	flags.StringVar(&o.accessToken, prefix+"token", "",
 		"OAuth 2.0 access token of a service account, used to call Google Cloud KMS; "+
 			"it is visible to other users in the process list")
+	flags.StringVar(&o.associatedData, prefix+"associated-data", "",
+		"Associated data bound to the encrypted "+strings.TrimPrefix(keysetName, "the ")+": "+
+			"the same value is needed to decrypt it. "+
+			"Java Tinkey can read the keyset only if this is not specified")
 }
 
 // aead returns the AEAD that encrypts and decrypts keysets with the KMS master
@@ -67,6 +75,9 @@ func (o *masterKeyOptions) aead(ctx context.Context) (tink.AEAD, error) {
 		// the caller expects an encrypted one.
 		if o.credentialPath != "" || o.accessToken != "" {
 			return nil, fmt.Errorf("%s and %s require %s", credentialFlag, tokenFlag, uriFlag)
+		}
+		if o.associatedData != "" {
+			return nil, fmt.Errorf("--%sassociated-data requires %s", o.flagPrefix, uriFlag)
 		}
 		return nil, nil
 	}
