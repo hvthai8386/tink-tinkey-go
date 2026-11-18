@@ -151,6 +151,9 @@ make test    # go test -race ./...
 make lint    # golangci-lint run ./...
 ```
 
+CI also runs `go run golang.org/x/vuln/cmd/govulncheck@latest ./...` and fails on a known vulnerability the code can
+reach.
+
 `cmd/tinkey/java_key_templates.txt` is generated from a Java Tinkey release and must not be edited by hand. To move
 to another release (needs a JDK):
 
