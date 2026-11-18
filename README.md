@@ -7,6 +7,8 @@ uses the same command and flag names.
 It has the commands and key templates of Java Tinkey 1.14.0 and encrypts keysets at rest with a Google Cloud KMS or
 AWS KMS key. On top of Java Tinkey, it can authenticate to Google Cloud KMS with an access token (`--token`).
 
+This is an independent port. It is not affiliated with, endorsed by, or supported by Google or the Tink project.
+
 ## Install
 
 ```sh
@@ -131,6 +133,16 @@ the INI format of `~/.aws/credentials` (profile `default`). `--token` does not a
   No Tinkey command writes such a keyset, but Java Tinkey reads one made by other means.
 - Output files are created with mode `0600`.
 
+## How it was verified
+
+| What | Checked against |
+|------|-----------------|
+| All 143 key templates, JSON and binary keysets, public keysets, `destroy-key` | Java Tinkey 1.14.0, in both directions, on cleartext keysets |
+| Keysets encrypted with Google Cloud KMS | A real Cloud KMS key and Java Tinkey 1.14.0, in both directions (two templates) |
+| `--token` and GKE Workload Identity | A real Cloud KMS key |
+| `--credential` for Google Cloud KMS | A fake token endpoint and KMS only |
+| `aws-kms://` master keys | A fake AWS KMS only; never run against AWS or compared with Java Tinkey |
+
 ## Development
 
 ```sh
@@ -148,3 +160,7 @@ make java-key-templates TINKEY_JAR=/path/to/tinkey_deploy.jar
 
 The tests run every command in process against a fake Cloud KMS, token endpoint, metadata server and AWS KMS; they
 need no cloud account. Decisions that constrain future changes are in [DECISIONS.md](DECISIONS.md).
+
+## License
+
+Apache License 2.0, see [LICENSE](LICENSE). Parts are derived from Tinkey, see [NOTICE](NOTICE).
